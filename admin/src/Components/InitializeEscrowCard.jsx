@@ -2,14 +2,18 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import DatePicker from 'react-datepicker';
 import { Card, Input, Button } from 'pixel-retroui';
+import { useAppData } from '../utils/useAppData'; // Подключение контекста
+import { ethers } from "ethers";
 
 // Import the react-datepicker styles
 import 'react-datepicker/dist/react-datepicker.css';
 // Import our custom styles (should be imported after the default styles)
 import '../assets/datepicker.css';
+import { ERC20_ABI } from "../abis/erc20Abi.js";
 
 const InitializeEscrowForm = () => {
-    // Initialize react-hook-form with setValue
+    const { contract, tokenAddress, provider, signer } = useAppData(); // Используем данные контекста
+
     const {
         control,
         handleSubmit,
@@ -18,7 +22,6 @@ const InitializeEscrowForm = () => {
         watch
     } = useForm();
 
-    // Form submission state
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Watch the amount value to display in the input
@@ -26,8 +29,6 @@ const InitializeEscrowForm = () => {
 
     /**
      * Validates the contract period date
-     * @param {Date} date - The selected date
-     * @returns {boolean|string} - Returns true if valid or error message
      */
     const validateContractPeriod = (date) => {
         if (!date) return 'Contract Period is required';
@@ -43,53 +44,80 @@ const InitializeEscrowForm = () => {
 
     /**
      * Validates the amount input
-     * @param {number} value - The amount value
-     * @returns {boolean|string} - Returns true if valid or error message
      */
     const validateAmount = (value) => {
         if (!value) return 'Amount is required';
         if (isNaN(value)) return 'Amount must be a number';
-        if (value <= 0) return 'Amount must be greater than 0';
+        if (parseFloat(value) <= 0) return 'Amount must be greater than 0';
         return true;
     };
 
     /**
      * Handle amount input change
-     * @param {Event} e - The input change event
      */
     const handleAmountChange = (e) => {
         const value = e.target.value;
-        // Use setValue to update the form value
-        setValue('amount', value === '' ? undefined : parseFloat(value), {
-            shouldValidate: true // Trigger validation on change
-        });
+
+        // Проверяем, что ввод соответствует числу с плавающей точкой или пустому значению
+        if (/^(\d+(\.\d*)?|\.\d*)?$/.test(value)) {
+            setValue('amount', value, {
+                shouldValidate: true // Trigger validation on change
+            });
+        }
     };
 
-    /**
-     * Simulates form submission with a delay
-     * @param {Object} formData - The form data to submit
-     * @returns {Promise} - Promise that resolves after simulated submission
-     */
-    const submitFormData = (formData) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('Form Data:', formData);
-                resolve(formData);
-            }, 2000);
-        });
+    const submitToContract = async (amount, endDateTimestamp) => {
+        if (!contract || !tokenAddress || !signer) {
+            throw new Error('Contract, token, or signer is not initialized');
+        }
+
+        // Конвертируем сумму в wei
+        const amountInWei = ethers.parseUnits(amount, 18); // Конвертируем сумму в wei
+
+        // Подключаемся к токену
+        const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+
+        // Шаг 1: Вызов approve
+        try {
+            console.log(`Calling approve for ${amountInWei.toString()} to contract address ${contract.target}`);
+            const approveTx = await tokenContract.approve(contract.target, amountInWei);
+            console.log('Approve transaction sent:', approveTx.hash);
+            await approveTx.wait(); // Ждем подтверждения транзакции
+            console.log('Approve transaction confirmed.');
+        } catch (error) {
+            throw new Error(`Approve failed: ${error.message}`);
+        }
+
+        // Шаг 2: Вызов deposit
+        try {
+            console.log(`Calling deposit with amount ${amountInWei.toString()} and period ending at ${endDateTimestamp}`);
+            const depositTx = await contract.deposit(amountInWei, endDateTimestamp);
+            console.log('Deposit transaction sent:', depositTx.hash);
+            return depositTx.wait(); // Ждем подтверждения транзакции
+        } catch (error) {
+            throw new Error(`Deposit failed: ${error.message}`);
+        }
     };
 
     /**
      * Form submission handler
-     * @param {Object} data - The form data from react-hook-form
      */
     const onSubmit = async (data) => {
         try {
             setIsSubmitting(true);
-            await submitFormData(data);
-            alert('Form submitted successfully!');
+
+            // Извлекаем значения из data
+            const { amount, contractPeriod } = data;
+
+            // Обрабатываем дату и переводим в Unix timestamp
+            const contractPeriodTimestamp = Math.floor(new Date(contractPeriod).getTime() / 1000);
+
+            const txReceipt = await submitToContract(amount, contractPeriodTimestamp);
+            // Логируем данные
+            console.log("Amount:", amount);
+            console.log("Contract Period (Timestamp):", contractPeriodTimestamp);
         } catch (error) {
-            alert('An error occurred while submitting the form.');
+            alert(`An error occurred: ${error.message}`);
             console.error('Form submission error:', error);
         } finally {
             setIsSubmitting(false);
@@ -130,7 +158,7 @@ const InitializeEscrowForm = () => {
                             render={({ field }) => (
                                 <Input
                                     id="amount"
-                                    type="number"
+                                    type="text" // Используем текстовый тип для поддержки чисел с плавающей точкой
                                     placeholder="Enter amount"
                                     value={amountValue}
                                     onChange={handleAmountChange}
@@ -138,6 +166,7 @@ const InitializeEscrowForm = () => {
                                     textColor="black"
                                     borderColor={errors.amount ? '#ff0000' : 'black'}
                                     className="w-full"
+                                    disabled={!contract || isSubmitting} // Отключаем, если контракт не загружен
                                 />
                             )}
                         />
@@ -172,6 +201,7 @@ const InitializeEscrowForm = () => {
                                         customInput={
                                             <PixelDatePickerInput error={errors.contractPeriod} />
                                         }
+                                        disabled={!contract || isSubmitting} // Отключаем, если контракт не загружен
                                     />
                                 </div>
                             )}
@@ -192,7 +222,7 @@ const InitializeEscrowForm = () => {
                         borderColor="black"
                         shadow="#fefccf"
                         className="py-1 w-full"
-                        disabled={isSubmitting}
+                        disabled={!contract || isSubmitting} // Отключаем кнопку, если контракт не загружен
                     >
                         {isSubmitting ? 'Processing...' : 'Initialize'}
                     </Button>

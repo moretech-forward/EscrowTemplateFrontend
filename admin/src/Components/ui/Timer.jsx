@@ -4,18 +4,22 @@ import { useEffect, useState } from 'preact/hooks';
  * Timer component that counts down to a target timestamp
  * @param {Object} props
  * @param {number} props.targetTimestamp - Target timestamp in milliseconds
+ * @param {boolean} props.isContractActive - Indicates if the contract is active
  * @param {string} [props.className] - Additional CSS classes
  * @param {Object} [props.style] - Inline styles
  * @param {string} [props.expiredText] - Text to show when timer expires (default: "Contract expired")
+ * @param {string} [props.inactiveText] - Text to show when contract is not active (default: "Contract not activated")
  */
 export default function Timer({
                                   targetTimestamp,
+                                  isContractActive = false,
                                   className = '',
                                   style = {},
-                                  expiredText = 'Contract expired'
+                                  expiredText = 'Contract expired',
+                                  inactiveText = 'Contract not activated'
                               }) {
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
-    const [isExpired, setIsExpired] = useState(targetTimestamp <= Date.now);
+    const [isExpired, setIsExpired] = useState(targetTimestamp <= Date.now());
 
     // Calculate remaining time
     function calculateTimeLeft() {
@@ -23,9 +27,9 @@ export default function Timer({
         return targetTimestamp > now ? targetTimestamp - now : 0;
     }
 
-    // Update timer every second
+    // Update timer every second if contract is active
     useEffect(() => {
-        if (isExpired) return;
+        if (!isContractActive || isExpired) return;
 
         const timer = setInterval(() => {
             const newTimeLeft = calculateTimeLeft();
@@ -38,7 +42,7 @@ export default function Timer({
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [targetTimestamp, isExpired]);
+    }, [targetTimestamp, isExpired, isContractActive]);
 
     // Format time segments
     const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
@@ -56,22 +60,32 @@ export default function Timer({
         return 'text-green-500'; // Зеленый (больше 1 минуты)
     };
 
+    if (!isContractActive) {
+        return (
+            <div className={`flex flex-col items-center gap-4 ${className}`} style={style}>
+                <div className="text-center text-lg font-bold text-gray-600 mt-2">
+                    {inactiveText}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`flex flex-col items-center gap-4 ${className}`} style={style}>
             <p className="texl-md sm:text-lg md:text-xl font-bold text-black">Remaining time until expiry</p>
             <div className="flex items-center gap-4">
                 <AnimatedTimeSegment value={formatNumber(days)} label="days" />
-                <AnimatedDivider />
+                <StaticDivider />
                 <AnimatedTimeSegment value={formatNumber(hours)} label="hrs" />
-                <AnimatedDivider />
+                <StaticDivider />
                 <AnimatedTimeSegment value={formatNumber(mins)} label="mins" />
-                <AnimatedDivider />
+                <StaticDivider />
                 <AnimatedTimeSegment value={formatNumber(secs)} label="secs" color={getColor()} />
             </div>
 
             {/* Показываем текст "Contract expired", если таймер истек */}
             {isExpired && (
-                <div className="text-center text-lg font-bold text-red-600 mt-2 animate-pulse">
+                <div className="text-center text-lg font-bold text-red-600 mt-2">
                     {expiredText}
                 </div>
             )}
@@ -79,7 +93,7 @@ export default function Timer({
     );
 }
 
-// Subcomponent for animated time segment display
+// Subcomponent for static time segment display
 function AnimatedTimeSegment({ value, label, color = 'text-black' }) {
     return (
         <div className="flex flex-col items-center min-w-[60px] sm:min-w-[70px]">
@@ -93,12 +107,10 @@ function AnimatedTimeSegment({ value, label, color = 'text-black' }) {
     );
 }
 
-// Subcomponent for animated divider
-function AnimatedDivider() {
+// Subcomponent for static divider
+function StaticDivider() {
     return (
-        <div
-            className="text-3xl font-bold text-gray-800 mx-[-0.5rem] relative top-[-0.25rem] animate-bounce"
-        >
+        <div className="text-3xl font-bold text-gray-800 mx-[-0.5rem] relative top-[-0.25rem]">
             :
         </div>
     );
