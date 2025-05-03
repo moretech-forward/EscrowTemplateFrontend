@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
-      "/fonts/*": ["public/fonts/*"]
+      "/fonts/*": ["public/fonts/*"],
+      "@/*": ["./*"]
     }
   },
   "include": ["src/**/*"],

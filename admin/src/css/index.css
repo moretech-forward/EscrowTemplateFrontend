@@ -5,14 +5,14 @@
 
 @font-face {
     font-family: 'Minecraft';
-    src: url('/fonts/Minecraft.otf') format('opentype');
+    src: url('/public/fonts/Minecraft.otf') format('opentype');
     font-weight: 400;
     font-display: swap;
 }
 
 @font-face {
     font-family: 'Minecraft';
-    src: url('/fonts/Minecraft-Bold.otf') format('opentype');
+    src: url('/public/fonts/Minecraft-Bold.otf') format('opentype');
     font-weight: 700;
     font-display: swap;
 }
@@ -23,6 +23,6 @@ body {
             linear-gradient(to right, #80808012 1px, transparent 1px),
             linear-gradient(to bottom, #80808012 1px, transparent 1px);
     background-size:
-            30px 100%,  /* Шаг вертикальных линий (20px) */
-            100% 30px;  /* Шаг горизонтальных линий (20px) */
+            30px 100%,
+            100% 30px;
 }

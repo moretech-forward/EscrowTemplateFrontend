@@ -1,0 +1,30 @@
+.pixelContainer {
+    position: relative;
+    margin: 0.5rem 0.25rem;
+    display: inline-block;
+    width: 100%;
+    flex: 1 1 0%;
+    background-color: var(--input-custom-bg, var(--bg-input, #fff));
+    border-color: var(--input-custom-border, var(--border-input, #000));
+    border-style: solid;
+    border-width: 5px;
+    border-image-source: var(--input-custom-border-image, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M3 1h1v1h-1zM4 1h1v1h-1zM2 2h1v1h-1zM5 2h1v1h-1zM1 3h1v1h-1zM6 3h1v1h-1zM1 4h1v1h-1zM6 4h1v1h-1zM2 5h1v1h-1zM5 5h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1z' fill='black'/%3E%3C/svg%3E"));
+    border-image-slice: 3;
+    border-image-width: 2;
+    border-image-outset: 2;
+    border-image-repeat: stretch;
+    box-shadow: 2px 2px 0 2px var(--input-custom-bg, #fff),
+    -2px -2px 0 2px var(--input-custom-bg, #fff);
+}
+
+.pixelInput {
+    display: block;
+    width: 100%;
+    font-size: 16px;
+    background-color: transparent;
+    padding: 0 8px;
+    border: none;
+    outline: none;
+    color: var(--input-custom-text, var(--text-input, #000));
+    font-family: Minecraft, sans-serif;
+}

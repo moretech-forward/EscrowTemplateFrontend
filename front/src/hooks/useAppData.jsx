@@ -2,11 +2,11 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { ethers } from "ethers";
 import axios from "axios";
 import { ERC20_ABI } from "../abis/erc20Abi.js";
-import {ABI} from "../abis/ABI.js";
+import { ABI } from "../abis/ABI.js";
 
 const API_BASE_URL = "https://forwardfactory.ai/api";
-const USERWEBAPP_ADMIN_URL = `${API_BASE_URL}/network/userwebapp/admin/`;
-const FIXED_APP_ID = "2ba66cce-e343-4be2-9bd4-fe2e46f45531";
+const USERWEBAPP_FRONTEND_URL = `${API_BASE_URL}/network/userwebapp/frontend/`;
+const FRONTEND_SUBDOMAIN = "testtimer"; // Заданный субдомен
 
 // Создаём контекст
 const AppDataContext = createContext(null);
@@ -23,6 +23,7 @@ export function useAppDataProvider() {
     const [tokenTicker, setTokenTicker] = useState("TKN");
     const [isContractActive, setIsContractActive] = useState(false);
     const [expiryTimestamp, setExpiryTimestamp] = useState(null);
+    const [networkData, setNetworkData] = useState(null);
 
     // Добавляем состояния для провайдера и сайнера
     const [provider, setProvider] = useState(null);
@@ -31,15 +32,22 @@ export function useAppDataProvider() {
     useEffect(() => {
         const init = async () => {
             try {
-                // Шаг 1: Получаем данные о контракте
-                const res = await axios.get(`${USERWEBAPP_ADMIN_URL}${FIXED_APP_ID}`);
+                // Шаг 1: Получаем данные о контракте через новый API эндпоинт
+                const res = await axios.get(`${USERWEBAPP_FRONTEND_URL}${FRONTEND_SUBDOMAIN}/`);
                 const data = res.data;
                 setAppData(data);
+                setNetworkData(data.deployedNetwork);
 
                 console.log("=== Contract Metadata ===");
                 console.log(`Contract Address: ${data.contractAddress}`);
                 console.log(`Contract ABI: ${data.contractAbi ? "Loaded" : "Not Loaded"}`);
-                console.log(`Other Metadata:`, { ...data, contractAddress: undefined, contractAbi: undefined });
+                console.log(`Network: ${data.deployedNetwork.name} (Chain ID: ${data.deployedNetwork.chainId})`);
+                console.log(`Other Metadata:`, {
+                    frontendSubdomain: data.frontendSubdomain,
+                    adminAppId: data.adminAppId,
+                    createdAt: data.frontendCreatedAt,
+                    updatedAt: data.frontendUpdatedAt
+                });
 
                 // Шаг 2: Проверяем, доступен ли MetaMask
                 if (!window.ethereum) {
@@ -48,7 +56,24 @@ export function useAppDataProvider() {
                 }
 
                 const browserProvider = new ethers.BrowserProvider(window.ethereum);
-                setProvider(browserProvider); // Устанавливаем провайдер в состояние
+                setProvider(browserProvider);
+
+                // Проверяем, соответствует ли текущая сеть требуемой
+                const { chainId } = await browserProvider.getNetwork();
+
+                if (chainId !== BigInt(data.deployedNetwork.chainId)) {
+                    console.warn(`Please switch to ${data.deployedNetwork.name} network (Chain ID: ${data.deployedNetwork.chainId})`);
+                    try {
+                        // Попытка переключить сеть
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: `0x${data.deployedNetwork.chainId.toString(16)}` }]
+                        });
+                    } catch (switchError) {
+                        console.error("Failed to switch network:", switchError);
+                        return;
+                    }
+                }
 
                 // Шаг 3: Проверяем, подключён ли кошелёк
                 const accounts = await browserProvider.send("eth_accounts", []);
@@ -58,7 +83,7 @@ export function useAppDataProvider() {
                 }
 
                 const walletSigner = await browserProvider.getSigner();
-                setSigner(walletSigner); // Устанавливаем сайнера в состояние
+                setSigner(walletSigner);
 
                 const escrowContract = new ethers.Contract(data.contractAddress, ABI, walletSigner);
                 setContract(escrowContract);
@@ -71,7 +96,7 @@ export function useAppDataProvider() {
                 console.log("=== Contract State ===");
                 console.log(`Deposit Executed: ${depositExecuted}`);
                 console.log(`Start Time: ${Number(startTime) * 1000}`);
-                console.log(`End Time: ${Number(endTime) * 1000}`); // Вывод endDate в консоль
+                console.log(`End Time: ${Number(endTime) * 1000}`);
 
                 setIsContractActive(depositExecuted && startTime > 0);
                 setExpiryTimestamp(Number(endTime) * 1000); // Преобразуем в миллисекунды
@@ -113,8 +138,9 @@ export function useAppDataProvider() {
         tokenTicker,
         isContractActive,
         expiryTimestamp,
-        provider, // Возвращаем провайдер
-        signer, // Возвращаем сайнера
+        provider,
+        signer,
+        networkData, // Добавляем информацию о сети
     };
 }
 

@@ -120,3 +120,26 @@
     margin: 8px 4px;
     width: 100%;
 }
+
+/* Styles for disabled days (past days) */
+.react-datepicker__day--disabled,
+.react-datepicker__day--outside-month {
+    color: var(--text-disabled, #cccccc) !important;
+    cursor: not-allowed !important;
+    background-color: transparent !important;
+}
+
+.react-datepicker__day--disabled:hover {
+    background-color: transparent !important;
+}
+
+/* Time list items disabled state */
+.react-datepicker__time-list-item--disabled {
+    color: var(--text-disabled, #cccccc) !important;
+    cursor: not-allowed !important;
+    background-color: transparent !important;
+}
+
+.react-datepicker__time-list-item--disabled:hover {
+    background-color: transparent !important;
+}

@@ -18,8 +18,8 @@ export const ABI = [
     "function getContractAddress() view returns (address)",
     "function getTokenBalance() view returns (uint256)",
     "function isDepositExecuted() view returns (bool)",
-    "function startTime() view returns (uint256)",
-    "function totalReleasedAmount() view returns (uint256)",
     "function refund()",
     "function release(uint256 _amount)",
+    "function startTime() view returns (uint256)",
+    "function totalReleasedAmount() view returns (uint256)"
 ];

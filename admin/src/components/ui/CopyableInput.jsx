@@ -81,3 +81,12 @@ export default function CopyableInput({ value, className = '', onCopy = null }) 
         </span>
     );
 }
+
+export function CopyField({label, value, loading}) {
+    return (
+        <div className="flex flex-col gap-1.5 w-full">
+            <span className="text-sm">{label}</span>
+            <CopyableInput value={loading ? "Loading..." : value || "-"}/>
+        </div>
+    );
+}
